@@ -12,6 +12,7 @@
 ## https://doi.org/10.1371/journal.pone.0196092
 ##--------------------------------------------------------------------------------
 
+# required packages
 list.of.packages <- c("tidyverse", "nlme", "lme4", "mgcv", "nlstools", "grid", "gridExtra")
 new.packages     <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -62,9 +63,12 @@ last_obs <- gr_dat %>%
            factor(month_capture, levels = format(ISOdate(2000, 1:12, 1), "%B"))
   )
 
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##--------------------------------------------------------------------------------
+
+
+##--------------------------------------------------------------------------------
 ## Bootstrapping
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##--------------------------------------------------------------------------------
 
 in_dat <- 
   gr_dat %>% 
@@ -120,7 +124,12 @@ am <- gls(fish_length_mm ~ rad4, weights=varExp(form= ~ rad4), data=al_dat)
 summary(im)
 summary(gm)
 
-# ------------------------ Projection functions  --------------------------
+##--------------------------------------------------------------------------------
+
+
+##--------------------------------------------------------------------------------
+## Projection functions
+##--------------------------------------------------------------------------------
 
 szkern <- function(TL, z, pars) {
   TLmean <- pars["smod.(Intercept)"] + pars["smod.rad4"]*z
@@ -148,7 +157,12 @@ mkmesh <- function(ipars) {
   ipars["l"] + mkdelta(ipars) * (1:ipars["n"]-1/2)
 }
 
-# -------------------- Otolith projection function  -----------------------
+get_quantile <- function(pdens, dlta, mesh, quantile = 0.95) {
+  cdf <- cumsum(pdens) / sum(pdens) 
+  range(mesh[cdf > (1-quantile)/2 & cdf < 1/2 + quantile/2])
+}
+
+# Otolith projection function  -----------------------
 
 projectO <- function(iparsO, mpars, max_a, ref_temp) {
   mesh <- mkmesh(iparsO)
@@ -165,9 +179,8 @@ projectO <- function(iparsO, mpars, max_a, ref_temp) {
               max_a = max_a, mesh = mesh, dlta = dlta)) # <- integr. params
 }
 
-#--------------------------------------------------------------------------
 
-# -------------------- Body size projection function  ---------------------
+# Body size projection function  ---------------------
 
 projectB <- function(iparsO, iparsB, mpars, max_a, ref_temp) {
   meshB <- mkmesh(iparsB)
@@ -199,20 +212,15 @@ projectB <- function(iparsO, iparsB, mpars, max_a, ref_temp) {
               max_a = max_a, meshB = meshB, dltaB = dltaB)) # <- integr. params
 }
 
-#--------------------------------------------------------------------------
 
-## get quantile
-get_quantile <- function(pdens, dlta, mesh, quantile = 0.95) {
-  cdf <- cumsum(pdens) / sum(pdens) 
-  range(mesh[cdf > (1-quantile)/2 & cdf < 1/2 + quantile/2])
-}
+##--------------------------------------------------------------------------------
 
 
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Projections - Otoliths only / mean params
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##--------------------------------------------------------------------------------
+## Projections - Otoliths only, using mean paramater values 
+##--------------------------------------------------------------------------------
 
-# ---------------------- Simple mean projection ---------------------------
+# Simple mean projection  -----------------------------
 
 proj_mean <-
   projectO(iparsO   = c(l=0.6, u=4, n=500), 
@@ -267,12 +275,12 @@ with(proj_mean_p1, {
   lines(1:max_a-1, mean_sz, type="b", col="red")
 })
 
+##--------------------------------------------------------------------------------
+## Projections - Otoliths only, full bootstrap
+##--------------------------------------------------------------------------------
 
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Projections - Otoliths only / full bootstrap
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# otolith projection  --------------------------------
 
-# ------------------------ Otolith projection -----------------------------
 mpars_bs_mat <- as.matrix(mpars_bs)
 
 # because the second argument in the function is 1, this is basically running the projection (projectO) n.boot*n times
@@ -285,7 +293,6 @@ all_proj <- apply(mpars_bs_mat, 1, function(mpars) {
 })
 
 
-
 # get the bootstrapped set of mean otolith sizes
 # because the second argument is 2, this is applied n.boot times
 mean_sz <- lapply(all_proj, function(proj) {
@@ -295,8 +302,6 @@ mean_sz <- lapply(all_proj, function(proj) {
   })
 }) %>% bind_rows
 
-
-
 # get the prediction intervals for each age class
 pred_dist <- lapply(all_proj, function(x) x$n)
 pred_dist <- Reduce("+", pred_dist)
@@ -305,8 +310,7 @@ pred_interv <- with(all_proj[[1]], {
 })
 
 
-
-# ---------------------- Age-specific density plot -----------------------------
+# Age-specific density plot --------------------------
 max_a <- 8
 mesh <- mkmesh(c(l = 0.6, u = 4.0 , n=500 )) 
 ## plot the age specific density functions
@@ -316,11 +320,10 @@ plot(mesh, pred_dist2[,1], type="l", ylim=c(0,4), xlim=c(1,3.5),
      xlab="Otolith radius (mm)", ylab="Density",
      cex.lab=1.5, cex.axis=1.5)
 for (A in 2:max_a) lines(mesh, pred_dist2[,A])
+# ----------------------------------------------------
 
-# ------------------------------------------------------------------------------
 
-
-# ---------------------- Otolith vs. Age plot -----------------------------
+# Otolith vs. Age plot -------------------------------
 
 # empty plot
 par(mar=c(5,5,1,1))
@@ -344,16 +347,16 @@ y_vals <- apply(mean_sz, 2, mean)
 points(1:length(y_vals)-1, y_vals, pch = 20, cex = 1.1, col = "red")
 y_vals <- apply(mean_sz, 2, quantile, probs = c(0.025, 0.975))
 for (i in 1:ncol(y_vals)) lines(rep(i, 2)-1, y_vals[,i], lwd = 1.5, col = "red")
+# ----------------------------------------------------
 
-# -------------------------------------------------------------------------
+##--------------------------------------------------------------------------------
+
+##--------------------------------------------------------------------------------
+## Projections - Otoliths and Body size
+##--------------------------------------------------------------------------------
 
 
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Projections - Otoliths + Body size
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-# --------------------------- Full projection -----------------------------------
-
+# Full projection ------------------------------------
 
 mpars_bs_mat <- as.matrix(mpars_bs)
 iparsO <- c(l = 0.6, u = 4.0 , n=500 ) # otolith 
@@ -370,10 +373,37 @@ full_proj <- apply(mpars_bs_mat, 1, function(mpars) {
            max_a    = max_a)
 })
 
+# ----------------------------------------------------
 
-# ------------------------------------------------------------------------------
+# Body size vs. Age plot -----------------------------
 
-# ------------------------- Body size vs. Age plot -----------------------------
+proj_plot <- function(full_proj){
+  
+  
+  # empty plot
+  par(mar=c(5,5,1,1))
+  plot(1, 1, type = "n", pch = 20,
+       xlab="Age (Years)", ylab="Fish Total Length (mm)",
+       xlim = c(0, 8), ylim=c(0, 600),
+       cex.lab=1.5, cex.axis=1.5)
+  
+  # add observed data points 
+  with(al_dat, 
+       points(jitter(age), fish_length_mm, 
+              pch = 20, cex = 0.3, col = grey(0.3, alpha = 0.4)))
+  
+  # add the prediction intervals
+  for (i in 1:ncol(pred_intervB)) 
+    lines(rep(i, 2)-1, pred_intervB[,i], 
+          col = rgb(1, 0, 0, alpha = 0.2), lwd = 6)
+  
+  # now add the average size +/- CI
+  y_vals <- apply(mean_szB, 2, mean)
+  points(1:length(y_vals)-1, y_vals, pch = 20, cex = 1.1, col = "red")
+  y_vals <- apply(mean_szB, 2, quantile, probs = c(0.025, 0.975))
+  for (i in 1:ncol(y_vals)) lines(rep(i, 2)-1, y_vals[,i], lwd = 1.5, col = "red")
+  
+}
 
 # get the bootstrapped set of mean body sizes
 mean_szB <- lapply(full_proj, function(proj) {
@@ -390,38 +420,9 @@ pred_intervB <- with(full_proj[[1]], {
   apply(pred_distB, 2, get_quantile, dltaB, meshB)
 })
 
-proj_plot <- function(full_proj){
+# ----------------------------------------------------
 
-
-
-# empty plot
-par(mar=c(5,5,1,1))
-plot(1, 1, type = "n", pch = 20,
-     xlab="Age (Years)", ylab="Fish Total Length (mm)",
-     xlim = c(0, 8), ylim=c(0, 600),
-     cex.lab=1.5, cex.axis=1.5)
-
-# add observed data points 
-with(al_dat, 
-     points(jitter(age), fish_length_mm, 
-            pch = 20, cex = 0.3, col = grey(0.3, alpha = 0.4)))
-
-  # add the prediction intervals
-  for (i in 1:ncol(pred_intervB)) 
-    lines(rep(i, 2)-1, pred_intervB[,i], 
-          col = rgb(1, 0, 0, alpha = 0.2), lwd = 6)
-  
-  # now add the average size +/- CI
-  y_vals <- apply(mean_szB, 2, mean)
-  points(1:length(y_vals)-1, y_vals, pch = 20, cex = 1.1, col = "red")
-  y_vals <- apply(mean_szB, 2, quantile, probs = c(0.025, 0.975))
-  for (i in 1:ncol(y_vals)) lines(rep(i, 2)-1, y_vals[,i], lwd = 1.5, col = "red")
-
-}
-
-# ------------------------------------------------------------------------------
-
-# ---------------------- Age-specific density plot -----------------------------
+# Age-specific density plot --------------------------
 
 meshB <- mkmesh(c(l = 0.0, u = 800, n=1000)) 
 ## plot the age specific density functions
@@ -431,9 +432,9 @@ plot(meshB, pred_distB2[,1], type="l", ylim=c(0,0.02), xlab="Fish total length (
      cex.lab=1.5, cex.axis=1.5)
 for (A in 2:max_a) lines(meshB, pred_distB2[,A])
 
-# ------------------------------------------------------------------------------
+# ----------------------------------------------------
 
-# ------------- TL vs. Age (temp scenarios) plots ------------------------------
+# TL vs. Age (temp scenarios) plots ------------------
 
 mpars_bs_mat <- as.matrix(mpars_bs)
 iparsO <- c(l = 0.6, u = 4.0 , n=500 ) # otolith 
@@ -491,7 +492,6 @@ pred_intervB_p1 <- with(full_proj_p1[[1]], {
 })
 
 
-
 # empty plot
 par(mar=c(5,5,1,1))
 plot(1, 1, type = "n", pch = 20,
@@ -538,4 +538,4 @@ useData$AgeM <- ((useData$annuli_num)*12) + useData$CaptureM - 1
 al_dat$CaptureM <- match(al_dat$month_capture,month.name)
 al_dat$AgeM <- (al_dat$age*12) + al_dat$CaptureM - 1
 
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
