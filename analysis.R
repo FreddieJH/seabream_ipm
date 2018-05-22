@@ -1,6 +1,6 @@
 
 ##--------------------------------------------------------------------------------
-## Authors: Freddie J. Heather
+## Authors: FJ Heather, DZ Childs
 ## Date: 22-05-18
 ## Title: Seabream growth IPM
 ## Description: For the paper - 
