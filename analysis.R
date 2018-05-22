@@ -1,10 +1,16 @@
 
 ##--------------------------------------------------------------------------------
-## Author: Freddie J. Heather
+## Authors: Freddie J. Heather
 ## Date: 22-05-18
 ## Title: Seabream growth IPM
-##--------------------------------------------------------------------------------
+## Description: For the paper - 
 
+## Heather FJ, Childs DZ, Darnaude AM, Blanchard JL (2018) 
+## Using an integral projection model to assess the effect of temperature on the
+## growth of gilthead seabream Sparus aurata. PLoS ONE 13(5): e0196092. 
+
+## https://doi.org/10.1371/journal.pone.0196092
+##--------------------------------------------------------------------------------
 
 list.of.packages <- c("tidyverse", "nlme", "lme4", "mgcv", "nlstools", "grid", "gridExtra")
 new.packages     <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -16,7 +22,6 @@ lapply(list.of.packages, require, character.only = TRUE)
 ##--------------------------------------------------------------------------------
 ## Importing data
 ##--------------------------------------------------------------------------------
-
 
 allData  <- read.csv("for_analysis4.csv") %>% select(-1)
 useData <- allData %>%
