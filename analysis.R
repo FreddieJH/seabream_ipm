@@ -13,7 +13,7 @@
 ##--------------------------------------------------------------------------------
 
 # required packages
-list.of.packages <- c("tidyverse", "nlme", "lme4", "mgcv", "nlstools", "grid", "gridExtra", "rdryad", "data.table")
+list.of.packages <- c("tidyverse", "nlme", "data.table")
 new.packages     <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -92,7 +92,7 @@ al_dat <-
 al_dat_1 <- filter(al_dat,  fish_id %in% gr_dat$fish_id)
 al_dat_2 <- filter(al_dat, !fish_id %in% gr_dat$fish_id)
 
-n_boots <- 100
+n_boots <- 10000
 in_ests <- gr_ests <- al_ests <- list()
 for (i in 1:n_boots) {
   
