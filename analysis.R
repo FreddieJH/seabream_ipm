@@ -13,7 +13,7 @@
 ##--------------------------------------------------------------------------------
 
 # required packages
-list.of.packages <- c("tidyverse", "nlme", "lme4", "mgcv", "nlstools", "grid", "gridExtra")
+list.of.packages <- c("tidyverse", "nlme", "lme4", "mgcv", "nlstools", "grid", "gridExtra", "rdryad", "data.table")
 new.packages     <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -24,34 +24,36 @@ lapply(list.of.packages, require, character.only = TRUE)
 ## Importing data
 ##--------------------------------------------------------------------------------
 
-allData  <- read.csv("for_analysis4.csv") %>% select(-1)
-useData <- allData %>%
+useData  <- 
+  fread("https://datadryad.org/bitstream/handle/10255/dryad.177254/for_analysis4.csv?sequence=1") %>%
+  data.frame() %>%
+  select(-1) %>%
   mutate(covariate = summerT) %>% 
   filter(annuli_num > 0, OL.t1<2.7) %>%
   na.omit # this also removes fish_id == M101 (anomylous)
 
-al_dat <- read.csv("allometrydata.csv") %>% 
+al_dat <- 
+  fread("https://datadryad.org/bitstream/handle/10255/dryad.177248/allometrydata.csv?sequence=1") %>%
+  data.frame() %>%
   select(-1) %>% 
   filter(rad4>1) %>%
   mutate(match(month_capture,month.name) + (age*12))
-gr_dat <- useData %>%
+
+gr_dat <- 
+  useData %>%
   select(fish.id, birth, month.capture, 
          year.capture, annuli_num, OL.t1, OL.t, age, covariate) %>%
   rename(fish_id = fish.id, birth_year = birth, 
          month_capture = month.capture, year_capture = year.capture)
-lagoonData    <- read.csv("lagoon_data_sub.csv")
-summerT       <- read.csv("summer_temps.csv")  %>% select(-c(1,season))
 
-al_dat <- allometryData %>% 
-  select(fish_id = fish_ID, birth_year = birthyear, 
-         month_capture = month_caught, year_capture = year_caught,
-         fish_length_mm, age, rad4) 
+lagoonData <- 
+  fread("https://datadryad.org/bitstream/handle/10255/dryad.177258/lagoon_data_sub.csv?sequence=1") %>%
+  data.frame()
 
-gr_dat <- useData %>%
-  select(fish.id, birth, month.capture, 
-         year.capture, annuli_num, OL.t1, OL.t, age, covariate) %>%
-  rename(fish_id = fish.id, birth_year = birth, 
-         month_capture = month.capture, year_capture = year.capture)
+summerT <- 
+  fread("https://datadryad.org/bitstream/handle/10255/dryad.177257/summer_temps.csv?sequence=1")  %>% 
+  data.frame() %>%
+  select(-c(1,season))
 
 last_obs <- gr_dat %>% 
   select(-birth_year, -month_capture, -year_capture) %>%
@@ -90,7 +92,7 @@ al_dat <-
 al_dat_1 <- filter(al_dat,  fish_id %in% gr_dat$fish_id)
 al_dat_2 <- filter(al_dat, !fish_id %in% gr_dat$fish_id)
 
-n_boots <- 10000
+n_boots <- 100
 in_ests <- gr_ests <- al_ests <- list()
 for (i in 1:n_boots) {
   
