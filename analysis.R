@@ -25,15 +25,15 @@ lapply(list.of.packages, require, character.only = TRUE)
 ##--------------------------------------------------------------------------------
 
 useData  <- 
-  fread("https://datadryad.org/bitstream/handle/10255/dryad.177254/for_analysis4.csv?sequence=1") %>%
-  data.frame() %>%
+  fread("https://datadryad.org/stash/downloads/file_stream/43742") %>%
+  data.frame() %>% 
   select(-1) %>%
   mutate(covariate = summerT) %>% 
   filter(annuli_num > 0, OL.t1<2.7) %>%
   na.omit # this also removes fish_id == M101 (anomylous)
 
 al_dat <- 
-  fread("https://datadryad.org/bitstream/handle/10255/dryad.177248/allometrydata.csv?sequence=1") %>%
+  fread("https://datadryad.org/stash/downloads/file_stream/43741") %>%
   data.frame() %>%
   select(-1) %>% 
   filter(rad4>1) %>%
@@ -47,11 +47,11 @@ gr_dat <-
          month_capture = month.capture, year_capture = year.capture)
 
 lagoonData <- 
-  fread("https://datadryad.org/bitstream/handle/10255/dryad.177258/lagoon_data_sub.csv?sequence=1") %>%
+  fread("https://datadryad.org/stash/downloads/file_stream/43744") %>%
   data.frame()
 
 summerT <- 
-  fread("https://datadryad.org/bitstream/handle/10255/dryad.177257/summer_temps.csv?sequence=1")  %>% 
+  fread("https://datadryad.org/stash/downloads/file_stream/43743")  %>% 
   data.frame() %>%
   select(-c(1,season))
 
